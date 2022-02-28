@@ -1,15 +1,15 @@
-##Financiero
+## Financiero
 Permite llevar el control de los movimientos por cuentas bancarias y clientes
 
-####Api rest
+#### Api rest
 
-##Configuracion
+## Configuracion
 
 > servidor:localhost
 
 > puerto: 8080
 
-####Listado de Clientes
+#### Listado de Clientes
 
 `[Get] <servidor>:<puerto>/api/clientes`
 
@@ -27,7 +27,7 @@ Devuelve el listado de clientes
 ]
 ```
 
-####Crear Cliente
+#### Crear Cliente
 
 `[Post] <servidor>:<puerto>/api/clientes`
 
