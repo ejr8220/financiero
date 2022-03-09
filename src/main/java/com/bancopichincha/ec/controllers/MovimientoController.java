@@ -29,6 +29,7 @@ import com.bancopichincha.ec.Dto.MovimientoDtoResponse;
 import com.bancopichincha.ec.entities.Movimiento;
 import com.bancopichincha.ec.service.impl.CuentaServiceImpl;
 import com.bancopichincha.ec.service.impl.MovimientoServiceImpl;
+import com.bancopichincha.ec.service.impl.ValidatorMovimiento;
 import com.bancopichincha.ec.utils.CustomException;
 
 @RestController
@@ -39,7 +40,8 @@ public class MovimientoController {
 	MovimientoServiceImpl movimientoServiceImpl;
 	@Autowired
 	CuentaServiceImpl mcuentaServiceImpl;
-
+	@Autowired
+	ValidatorMovimiento validatorMovimiento;
 	@Autowired
 	private Environment env;
 
@@ -49,8 +51,6 @@ public class MovimientoController {
 	public ResponseEntity<List<MovimientoDtoResponse>> getEstadoCuenta(@PathVariable("fechaDesde") String fechaDesde,
 			@PathVariable("fechaHasta") String fechaHasta, @PathVariable("id") Long id) throws Exception {
 		List<MovimientoDtoResponse> lstMovimientoResponse = new ArrayList<MovimientoDtoResponse>();
-		LOGGER.info(Date.valueOf(fechaDesde).toString());
-		LOGGER.info(Date.valueOf(fechaHasta).toString());
 		movimientoServiceImpl.getEstadoCuenta(Date.valueOf(fechaDesde), Date.valueOf(fechaHasta), id)
 				.forEach(new Consumer<Movimiento>() {
 
@@ -72,36 +72,7 @@ public class MovimientoController {
 
 	@PostMapping("/movimientos")
 	public ResponseEntity<?> newMovimiento(@RequestBody MovimientoDtoRequest movimientoDto) throws Exception {
-		float monto = Float.parseFloat(env.getProperty("financiero.debito.cupo_diario"));
-		float saldo = movimientoServiceImpl.getSaldoCuenta(movimientoDto.getCuentaId());
-		float saldoDiario = monto - movimientoServiceImpl.getSaldoDiario(movimientoDto.getCuentaId(),
-				Date.valueOf(movimientoDto.getFeCreacion()));
-		if (saldo == 0 && movimientoDto.getValor() < 0) {
-			throw new CustomException("1", "Saldo no Disponible");
-		}
-		saldo += movimientoDto.getValor();
-		if (saldo < 0) {
-			throw new CustomException("1", "Monto mayor al Saldo Disponible");
-		}
-		if (movimientoDto.getValor() < 0) {
-			saldoDiario += movimientoDto.getValor();
-			if (saldoDiario < 0) {
-				throw new CustomException("1", "Cupo Diario Excedido");
-			}
-		}
-
-		String tipoMovimiento = "Credito";
-		Movimiento movimiento = new Movimiento();
-		movimiento.setCuentaId(movimientoDto.getCuentaId());
-		if (movimientoDto.getValor() < 0) {
-			tipoMovimiento = "Debito";
-		}
-		movimiento.setTipoMovimiento(tipoMovimiento);
-		movimiento.setValor(movimientoDto.getValor());
-		movimiento.setSaldo(saldo);
-		movimiento.setUsuarioCreacion(movimientoDto.getUsuarioCreacion());
-		movimiento.setFeCreacion(Date.valueOf(movimientoDto.getFeCreacion()));
-		movimiento.setIpCreacion(movimientoDto.getIpCreacion());
+		Movimiento movimiento = validatorMovimiento.validaNuevoMovimiento(movimientoDto); 
 		movimiento = movimientoServiceImpl.save(movimiento);
 		movimientoDto.setIdMovimiento(movimiento.getIdMovimiento());
 		return ResponseEntity.status(HttpStatus.OK).body(movimientoDto);
